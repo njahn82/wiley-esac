@@ -113,7 +113,7 @@ Next, we call the Crossref API.
 **Note that we just query 10 journals for the sake of this demonstration. Calling Crossref API for around 2000 journals takes around 1-2 hours if you have registered for the polite pool: <https://github.com/ropensci/rcrossref#register-for-the-polite-pool>**
 
 ```{r}
-jn_facets <- purrr::map(issns_list[c(991:1000)], .f = purrr::safely(function(x) {
+jn_facets <- purrr::map(issns_list, .f = purrr::safely(function(x) {
   tt <- rcrossref::cr_works(
     filter = c(
       x,
@@ -186,7 +186,8 @@ license_jns <- jn_df %>%
   ), TRUE, FALSE))  %>%
   filter(hybrid_license == TRUE, oa_mode == "hybrid oa") %>%
   nest(issn = c(issn))
-license_jns 
+license_jns <- license_jns %>%
+  filter(jn_code %in% c("AAS", "ACER"))
 ```
 
 We now know, whether and which open licenses were used by the journal.
@@ -241,16 +242,20 @@ Some data transformation to obtain hybrid oa figures per journal and year from t
 ```{r}
 license_df <- cr_license_df %>% 
   unnest(md) %>% 
+  filter(doi %in% immediate_dois$doi) %>% # only immediate DOIs
   unnest(issns) %>%
   inner_join((license_jns %>% unnest(issn)), by = "issn") %>%
   mutate(year = str_extract(issued, "[0-9]{4}")) %>%
   group_by(year, jn_code) %>%
   summarise(hybrid_oa_articles = n_distinct(doi))
-license_df
+license_df %>%
+  group_by(year) %>%
+  summarise(n = sum(hybrid_oa_articles))
 ```
 
-Finally, add the overall publication volume
+Finally, add the overall publication volume and export
 
 ```{r}
-inner_join(license_df, pub_volume, by = c("jn_code", "year"))
+inner_join(license_df, pub_volume, by = c("jn_code", "year")) %>%
+  write_csv("wiley_hybrid_final.csv")
 ```
