@@ -160,7 +160,8 @@ pub_volume <- jn_df %>%
   select(year = .id, articles = V1, jn_code) %>%
   distinct() %>%
   inner_join(jn_wiley, by = "jn_code")
-pub_volume
+pub_volume %>%
+  head()
 ```
 
 ### Open Access articles
@@ -186,8 +187,6 @@ license_jns <- jn_df %>%
   ), TRUE, FALSE))  %>%
   filter(hybrid_license == TRUE, oa_mode == "hybrid oa") %>%
   nest(issn = c(issn))
-license_jns <- license_jns %>%
-  filter(jn_code %in% c("AAS", "ACER"))
 ```
 
 We now know, whether and which open licenses were used by the journal.
@@ -244,7 +243,7 @@ license_df <- cr_license_df %>%
   unnest(md) %>% 
   filter(doi %in% immediate_dois$doi) %>% # only immediate DOIs
   unnest(issns) %>%
-  inner_join((license_jns %>% unnest(issn)), by = "issn") %>%
+  inner_join(license_jns %>% unnest(issn), by = c("issns" = "issn")) %>%
   mutate(year = str_extract(issued, "[0-9]{4}")) %>%
   group_by(year, jn_code) %>%
   summarise(hybrid_oa_articles = n_distinct(doi))
@@ -257,5 +256,5 @@ Finally, add the overall publication volume and export
 
 ```{r}
 inner_join(license_df, pub_volume, by = c("jn_code", "year")) %>%
-  write_csv("wiley_hybrid_final.csv")
+  write_csv("data/wiley_hybrid_final.csv")
 ```
