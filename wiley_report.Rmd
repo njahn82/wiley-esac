@@ -202,7 +202,7 @@ cr_md_fields <- c("URL", "member", "created", "license",
 cr_license <- purrr::map2(license_jns$license_ref, license_jns$issn,
                           .f = purrr::safely(function(x, y) {
                             u <- x
-                            issn <- y
+                            issn <- unlist(y)
                             names(issn) <-rep("issn", length(issn))
                             tmp <- rcrossref::cr_works(filter = c(issn, 
                                                                   license.url = u, 
